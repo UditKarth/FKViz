@@ -94,7 +94,7 @@ function App() {
     <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
       <header className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-lg font-semibold tracking-tight">
-          Interactive FK Pedagogical Laboratory
+          Interactive FK Laboratory
         </h1>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">

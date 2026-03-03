@@ -1,4 +1,4 @@
-# Interactive FK Pedagogical Laboratory
+# Interactive FK Laboratory
 
 A teaching tool for **Forward Kinematics** using Denavit–Hartenberg (DH) parameters, built with React, Three.js, and React-Three-Fiber.
 

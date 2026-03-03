@@ -20,8 +20,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      BASE_URL: /${{ github.event.repository.name }}/
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,6 +35,10 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # User site repo (*.github.io) → base '/' for root URL
+          # Project repo (e.g. FKViz) → base './' for username.github.io/repo-name/
+          VITE_BASE: ${{ endsWith(github.event.repository.name, '.github.io') && '/' || './' }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

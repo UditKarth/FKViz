@@ -4,5 +4,6 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.BASE_URL || '/',
+  // Project site: './' | User site: set VITE_BASE='/' when building
+  base: process.env.VITE_BASE ?? './',
 })

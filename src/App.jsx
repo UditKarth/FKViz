@@ -25,6 +25,7 @@ function App() {
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
   const [hoverCell, setHoverCell] = useState(null);
   const [showGhost, setShowGhost] = useState(true);
+  const [showJointLabels, setShowJointLabels] = useState(true);
   const [recording, setRecording] = useState(false);
   const [tracePoints, setTracePoints] = useState([]);
   const prevThetasRef = useRef(rows.map((r) => r.theta));
@@ -125,6 +126,16 @@ function App() {
             <span className="text-sm text-[var(--muted)]">Ghost</span>
           </div>
           <div className="flex items-center gap-2">
+            <Switch.Root
+              checked={showJointLabels}
+              onCheckedChange={setShowJointLabels}
+              className="w-9 h-5 rounded-full bg-[var(--border)] data-[state=checked]:bg-[var(--accent)] relative"
+            >
+              <Switch.Thumb className="block w-4 h-4 rounded-full bg-white translate-x-0.5 data-[state=checked]:translate-x-4 transition-transform" />
+            </Switch.Root>
+            <span className="text-sm text-[var(--muted)]">Labels</span>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setRecording((r) => !r)}
@@ -186,6 +197,7 @@ function App() {
             hoverCell={hoverCell}
             ghostThetas={ghostThetas}
             showGhost={showGhost}
+            showJointLabels={showJointLabels}
             tracePoints={tracePoints}
             recording={recording}
             onRecordPoint={handleRecordPoint}

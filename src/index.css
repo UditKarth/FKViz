@@ -59,3 +59,13 @@ button {
 .table-cell-hover:hover {
   background: rgba(56, 189, 248, 0.08);
 }
+
+/* 3D overlay labels: not selectable, don't block pointer */
+.fk-label-overlay {
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+}

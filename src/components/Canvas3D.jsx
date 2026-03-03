@@ -8,6 +8,7 @@ export default function Canvas3D({
   hoverCell,
   ghostThetas,
   showGhost,
+  showJointLabels = true,
   tracePoints,
   recording,
   onRecordPoint,
@@ -24,6 +25,7 @@ export default function Canvas3D({
           hoverCell={hoverCell}
           ghostThetas={ghostThetas}
           showGhost={showGhost}
+          showJointLabels={showJointLabels}
           tracePoints={tracePoints}
           recording={recording}
           onRecordPoint={onRecordPoint}

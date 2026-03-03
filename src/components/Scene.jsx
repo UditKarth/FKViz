@@ -7,7 +7,7 @@ import { DHKinematics } from '../lib/dhKinematics.js';
 const AXIS_LEN = 0.08;
 const AXIS_RAD = 0.008;
 
-function AxisFrame({ zLabel = 'Z' }) {
+function AxisFrame({ zLabel = 'Z', showLabel = true }) {
   return (
     <group>
       <mesh position={[AXIS_LEN / 2, 0, 0]}>
@@ -22,14 +22,16 @@ function AxisFrame({ zLabel = 'Z' }) {
         <cylinderGeometry args={[AXIS_RAD, AXIS_RAD, AXIS_LEN, 8]} />
         <meshStandardMaterial color="#3b82f6" />
       </mesh>
-      <Html position={[0, 0, AXIS_LEN + 0.02]} center distanceFactor={8}>
-        <span className="text-[10px] font-bold text-blue-400 bg-black/70 px-1 rounded">{zLabel}</span>
-      </Html>
+      {showLabel && (
+        <Html position={[0, 0, AXIS_LEN + 0.02]} center distanceFactor={48} style={{ pointerEvents: 'none' }}>
+          <span className="fk-label-overlay font-bold text-blue-400 bg-black/70 px-0.5 rounded" style={{ fontSize: '9px' }}>{zLabel}</span>
+        </Html>
+      )}
     </group>
   );
 }
 
-function LinkCylinder({ length, radius = 0.02, highlight, label }) {
+function LinkCylinder({ length, radius = 0.02, highlight, label, showLabels }) {
   return (
     <group>
       <mesh position={[length / 2, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
@@ -40,9 +42,9 @@ function LinkCylinder({ length, radius = 0.02, highlight, label }) {
           emissiveIntensity={highlight ? 0.4 : 0}
         />
       </mesh>
-      {label != null && (
-        <Html position={[length / 2, 0.03, 0]} center distanceFactor={6}>
-          <span className="text-[9px] text-cyan-300 bg-black/60 px-1 rounded">{label}</span>
+      {showLabels && label != null && (
+        <Html position={[length / 2, 0.03, 0]} center distanceFactor={48} style={{ pointerEvents: 'none' }}>
+          <span className="fk-label-overlay text-cyan-300 bg-black/60 px-0.5 rounded" style={{ fontSize: '8px' }}>{label}</span>
         </Html>
       )}
     </group>
@@ -50,15 +52,17 @@ function LinkCylinder({ length, radius = 0.02, highlight, label }) {
 }
 
 /** Dimension line for a_i: from origin along local X */
-function DimensionLine({ length, highlight }) {
+function DimensionLine({ length, highlight, showLabels }) {
   if (!highlight || length <= 0) return null;
   const points = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(length, 0, 0)];
   return (
     <group>
       <Line points={points} color="#38bdf8" lineWidth={3} />
-      <Html position={[length / 2, 0.05, 0]} center distanceFactor={5}>
-        <span className="text-[10px] font-mono text-cyan-400 bg-black/80 px-1 rounded">a</span>
-      </Html>
+      {showLabels && (
+        <Html position={[length / 2, 0.05, 0]} center distanceFactor={48} style={{ pointerEvents: 'none' }}>
+          <span className="fk-label-overlay font-mono text-cyan-400 bg-black/80 px-0.5 rounded" style={{ fontSize: '8px' }}>a</span>
+        </Html>
+      )}
     </group>
   );
 }
@@ -193,6 +197,7 @@ function NestedRobot({
   hoverCell,
   ghostThetas,
   showGhost,
+  showJointLabels = true,
 }) {
   const engine = useMemo(() => {
     const e = new DHKinematics(convention);
@@ -221,12 +226,13 @@ function NestedRobot({
         engine={engine}
         hoverCell={hoverCell}
         depth={0}
+        showJointLabels={showJointLabels}
       />
     </>
   );
 }
 
-function NestedChain({ rows, convention, engine, hoverCell, depth }) {
+function NestedChain({ rows, convention, engine, hoverCell, depth, showJointLabels = true }) {
   if (depth >= rows.length) return null;
 
   const i = depth;
@@ -242,12 +248,13 @@ function NestedChain({ rows, convention, engine, hoverCell, depth }) {
 
   return (
     <group matrix={matrix} matrixAutoUpdate={false}>
-      <AxisFrame zLabel={`Z${i}`} />
-      <DimensionLine length={linkLength} highlight={hoverCell?.row === i && hoverCell?.col === 'a'} />
+      <AxisFrame zLabel={`Z${i}`} showLabel={showJointLabels} />
+      <DimensionLine length={linkLength} highlight={hoverCell?.row === i && hoverCell?.col === 'a'} showLabels={showJointLabels} />
       <LinkCylinder
         length={linkLength}
         highlight={hoverCell?.row === i && hoverCell?.col === 'a'}
         label={hoverCell?.row === i && hoverCell?.col === 'a' ? `a${i}` : null}
+        showLabels={showJointLabels}
       />
       {!isLast && (
         <NestedChain
@@ -256,6 +263,7 @@ function NestedChain({ rows, convention, engine, hoverCell, depth }) {
           engine={engine}
           hoverCell={hoverCell}
           depth={depth + 1}
+          showJointLabels={showJointLabels}
         />
       )}
     </group>
@@ -284,6 +292,7 @@ export function Scene({
   hoverCell,
   ghostThetas,
   showGhost,
+  showJointLabels = true,
   tracePoints,
   recording,
   onRecordPoint,
@@ -320,6 +329,7 @@ export function Scene({
         hoverCell={hoverCell}
         ghostThetas={ghostThetas}
         showGhost={showGhost}
+        showJointLabels={showJointLabels}
       />
       <WorkspaceTrace points={pointsToShow} />
     </>

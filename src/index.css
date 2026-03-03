@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  line-height: 1.5;
+  color-scheme: dark;
+  --bg: #0c0e12;
+  --panel: #13171f;
+  --border: #1e2530;
+  --muted: #64748b;
+  --text: #e2e8f0;
+  --accent: #38bdf8;
+  --accent-dim: #0ea5e9;
+  --green: #22c55e;
+  --red: #ef4444;
+  --glow: rgba(56, 189, 248, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input[type="number"] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--glow);
+}
+
+button {
+  cursor: pointer;
+}
+
+.table-cell-highlight {
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.table-cell-hover:hover {
+  background: rgba(56, 189, 248, 0.08);
+}

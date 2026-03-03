@@ -28,6 +28,7 @@ function App() {
   const [showJointLabels, setShowJointLabels] = useState(true);
   const [recording, setRecording] = useState(false);
   const [tracePoints, setTracePoints] = useState([]);
+  const [labelScreenPositions, setLabelScreenPositions] = useState([]);
   const prevThetasRef = useRef(rows.map((r) => r.theta));
   const [ghostThetas, setGhostThetas] = useState(null);
 
@@ -201,6 +202,8 @@ function App() {
             tracePoints={tracePoints}
             recording={recording}
             onRecordPoint={handleRecordPoint}
+            onLabelPositions={setLabelScreenPositions}
+            labelScreenPositions={labelScreenPositions}
           />
         </div>
         <div className="flex flex-col gap-4 overflow-y-auto">

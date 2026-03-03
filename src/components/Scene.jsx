@@ -1,11 +1,12 @@
 import { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { DHKinematics } from '../lib/dhKinematics.js';
 
 const AXIS_LEN = 0.08;
 const AXIS_RAD = 0.008;
+const Z_LABEL_OFFSET = AXIS_LEN + 0.02;
 
 function AxisFrame({ zLabel = 'Z', showLabel = true }) {
   return (
@@ -22,11 +23,7 @@ function AxisFrame({ zLabel = 'Z', showLabel = true }) {
         <cylinderGeometry args={[AXIS_RAD, AXIS_RAD, AXIS_LEN, 8]} />
         <meshStandardMaterial color="#3b82f6" />
       </mesh>
-      {showLabel && (
-        <Html position={[0, 0, AXIS_LEN + 0.02]} center distanceFactor={48} style={{ pointerEvents: 'none' }}>
-          <span className="fk-label-overlay font-bold text-blue-400 bg-black/70 px-0.5 rounded" style={{ fontSize: '9px' }}>{zLabel}</span>
-        </Html>
-      )}
+      {/* Z labels are drawn in screen-space overlay (see LabelOverlay in Canvas3D) so they stay fixed size */}
     </group>
   );
 }
@@ -286,6 +283,50 @@ function WorkspaceTrace({ points }) {
   );
 }
 
+const vec = new THREE.Vector3();
+
+/** Pushes screen-space label positions to the overlay (called every frame when showJointLabels). */
+function useLabelPositionsToOverlay(engine, rows, showJointLabels, onLabelPositions) {
+  const { camera, size } = useThree();
+  const prevRef = useRef(null);
+
+  useFrame(() => {
+    if (!onLabelPositions) return;
+    if (!showJointLabels || rows.length === 0) {
+      if (prevRef.current !== 'off') {
+        prevRef.current = 'off';
+        onLabelPositions([]);
+      }
+      return;
+    }
+    const poses = engine.getAllPoses();
+    const widthHalf = size.width / 2;
+    const heightHalf = size.height / 2;
+    const positions = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (i === 0) {
+        vec.set(0, 0, Z_LABEL_OFFSET);
+      } else {
+        const e = poses[i - 1];
+        vec.set(
+          e[12] + Z_LABEL_OFFSET * e[8],
+          e[13] + Z_LABEL_OFFSET * e[9],
+          e[14] + Z_LABEL_OFFSET * e[10]
+        );
+      }
+      vec.project(camera);
+      const x = vec.x * widthHalf + widthHalf;
+      const y = -(vec.y * heightHalf) + heightHalf;
+      positions.push({ i, x, y });
+    }
+    const key = positions.map((p) => `${p.i.toFixed(0)}:${p.x.toFixed(1)}:${p.y.toFixed(1)}`).join('|');
+    if (prevRef.current !== key) {
+      prevRef.current = key;
+      onLabelPositions(positions);
+    }
+  });
+}
+
 export function Scene({
   rows,
   convention,
@@ -296,6 +337,7 @@ export function Scene({
   tracePoints,
   recording,
   onRecordPoint,
+  onLabelPositions,
 }) {
   const engine = useMemo(() => {
     const e = new DHKinematics(convention);
@@ -308,6 +350,8 @@ export function Scene({
     () => ({ x: eePose[12], y: eePose[13], z: eePose[14] }),
     [eePose]
   );
+
+  useLabelPositionsToOverlay(engine, rows, showJointLabels, onLabelPositions);
 
   const frameCount = useRef(0);
   useFrame(() => {

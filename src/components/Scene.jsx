@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -195,6 +195,7 @@ function NestedRobot({
   ghostThetas,
   showGhost,
   showJointLabels = true,
+  jointGroupRefs,
 }) {
   const engine = useMemo(() => {
     const e = new DHKinematics(convention);
@@ -224,12 +225,13 @@ function NestedRobot({
         hoverCell={hoverCell}
         depth={0}
         showJointLabels={showJointLabels}
+        jointGroupRefs={jointGroupRefs}
       />
     </>
   );
 }
 
-function NestedChain({ rows, convention, engine, hoverCell, depth, showJointLabels = true }) {
+function NestedChain({ rows, convention, engine, hoverCell, depth, showJointLabels = true, jointGroupRefs }) {
   if (depth >= rows.length) return null;
 
   const i = depth;
@@ -243,8 +245,17 @@ function NestedChain({ rows, convention, engine, hoverCell, depth, showJointLabe
     return m;
   }, [T]);
 
+  const setRef = useCallback(
+    (el) => {
+      if (jointGroupRefs?.current) {
+        jointGroupRefs.current[i] = el;
+      }
+    },
+    [i, jointGroupRefs]
+  );
+
   return (
-    <group matrix={matrix} matrixAutoUpdate={false}>
+    <group ref={setRef} matrix={matrix} matrixAutoUpdate={false}>
       <AxisFrame zLabel={`Z${i}`} showLabel={showJointLabels} />
       <DimensionLine length={linkLength} highlight={hoverCell?.row === i && hoverCell?.col === 'a'} showLabels={showJointLabels} />
       <LinkCylinder
@@ -261,6 +272,7 @@ function NestedChain({ rows, convention, engine, hoverCell, depth, showJointLabe
           hoverCell={hoverCell}
           depth={depth + 1}
           showJointLabels={showJointLabels}
+          jointGroupRefs={jointGroupRefs}
         />
       )}
     </group>
@@ -284,9 +296,10 @@ function WorkspaceTrace({ points }) {
 }
 
 const vec = new THREE.Vector3();
+const labelOffsetVec = new THREE.Vector3(0, 0, Z_LABEL_OFFSET);
 
-/** Pushes screen-space label positions to the overlay (called every frame when showJointLabels). */
-function useLabelPositionsToOverlay(engine, rows, showJointLabels, onLabelPositions) {
+/** Pushes screen-space label positions using actual 3D group refs so labels match the rendered scene. */
+function useLabelPositionsToOverlay(rows, showJointLabels, onLabelPositions, jointGroupRefs) {
   const { camera, size } = useThree();
   const prevRef = useRef(null);
 
@@ -299,27 +312,32 @@ function useLabelPositionsToOverlay(engine, rows, showJointLabels, onLabelPositi
       }
       return;
     }
-    const poses = engine.getAllPoses();
+    const refs = jointGroupRefs?.current;
+    if (!refs) return;
+    let allReady = true;
+    for (let i = 0; i < rows.length; i++) {
+      if (!refs[i]) {
+        allReady = false;
+        break;
+      }
+    }
+    if (!allReady) return;
+
     const widthHalf = size.width / 2;
     const heightHalf = size.height / 2;
     const positions = [];
     for (let i = 0; i < rows.length; i++) {
-      if (i === 0) {
-        vec.set(0, 0, Z_LABEL_OFFSET);
-      } else {
-        const e = poses[i - 1];
-        vec.set(
-          e[12] + Z_LABEL_OFFSET * e[8],
-          e[13] + Z_LABEL_OFFSET * e[9],
-          e[14] + Z_LABEL_OFFSET * e[10]
-        );
-      }
+      const group = refs[i];
+      if (!group) continue;
+      vec.copy(labelOffsetVec);
+      group.localToWorld(vec);
       vec.project(camera);
       const x = vec.x * widthHalf + widthHalf;
       const y = -(vec.y * heightHalf) + heightHalf;
       positions.push({ i, x, y });
     }
-    const key = positions.map((p) => `${p.i.toFixed(0)}:${p.x.toFixed(1)}:${p.y.toFixed(1)}`).join('|');
+    if (positions.length !== rows.length) return;
+    const key = positions.map((p) => `${p.i}:${p.x.toFixed(1)}:${p.y.toFixed(1)}`).join('|');
     if (prevRef.current !== key) {
       prevRef.current = key;
       onLabelPositions(positions);
@@ -345,13 +363,15 @@ export function Scene({
     return e;
   }, [rows, convention]);
 
+  const jointGroupRefs = useRef([]);
+
   const eePose = useMemo(() => engine.getEndEffectorPose(), [engine]);
   const eePosition = useMemo(
     () => ({ x: eePose[12], y: eePose[13], z: eePose[14] }),
     [eePose]
   );
 
-  useLabelPositionsToOverlay(engine, rows, showJointLabels, onLabelPositions);
+  useLabelPositionsToOverlay(rows, showJointLabels, onLabelPositions, jointGroupRefs);
 
   const frameCount = useRef(0);
   useFrame(() => {
@@ -374,6 +394,7 @@ export function Scene({
         ghostThetas={ghostThetas}
         showGhost={showGhost}
         showJointLabels={showJointLabels}
+        jointGroupRefs={jointGroupRefs}
       />
       <WorkspaceTrace points={pointsToShow} />
     </>

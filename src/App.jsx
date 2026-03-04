@@ -13,9 +13,11 @@ import Canvas3D from './components/Canvas3D.jsx';
 import DHTable from './components/DHTable.jsx';
 import MatrixDisplay from './components/MatrixDisplay.jsx';
 import ExplainFrame from './components/ExplainFrame.jsx';
+import IKPanel from './components/IKPanel.jsx';
 import { DHKinematics, DHRow } from './lib/dhKinematics.js';
 import { getPreset, PRESETS } from './lib/presets.js';
 import { dhToURDF } from './lib/urdfExport.js';
+import { solveIK } from './lib/ikSolvers.js';
 
 const PRESET_IDS = Object.keys(PRESETS);
 
@@ -31,6 +33,9 @@ function App() {
   const [labelScreenPositions, setLabelScreenPositions] = useState([]);
   const prevThetasRef = useRef(rows.map((r) => r.theta));
   const [ghostThetas, setGhostThetas] = useState(null);
+  const [ikTarget, setIkTarget] = useState(null);
+  const [ikResult, setIkResult] = useState(null);
+  const [ikShowPreview, setIkShowPreview] = useState(false);
 
   // Update ghost thetas when joint angles change (one step behind)
   useEffect(() => {
@@ -44,6 +49,11 @@ function App() {
     e.setRows(rows);
     return e;
   }, [convention, rows]);
+
+  const currentEEPosition = useMemo(() => {
+    const T = engine.getEndEffectorPose();
+    return { x: T[12], y: T[13], z: T[14] };
+  }, [engine]);
 
   const breakdown = selectedRowIndex >= 0 && selectedRowIndex < rows.length
     ? engine.getTransformBreakdown(selectedRowIndex)
@@ -89,6 +99,23 @@ function App() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const handleIKSolve = ({ method, target, options }) => {
+    const result = solveIK(method, rows, convention, target, options);
+    setIkResult(result);
+  };
+
+  const handleIKApply = (thetas) => {
+    setRows((prev) =>
+      prev.map((r, i) => new DHRow(r.i, r.a, r.alpha, r.d, thetas[i] ?? r.theta))
+    );
+  };
+
+  const handleIKUseCurrentEE = (pos) => {
+    setIkTarget({ x: pos.x, y: pos.y, z: pos.z });
+  };
+
+  const ikPreviewThetas = ikShowPreview && ikResult?.success && ikResult.thetas ? ikResult.thetas : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
@@ -204,6 +231,8 @@ function App() {
             onRecordPoint={handleRecordPoint}
             onLabelPositions={setLabelScreenPositions}
             labelScreenPositions={labelScreenPositions}
+            ikTarget={ikTarget}
+            ikPreviewThetas={ikPreviewThetas}
           />
         </div>
         <div className="flex flex-col gap-4 overflow-y-auto">
@@ -226,6 +255,19 @@ function App() {
             explainText={explainText}
             selectedRowIndex={selectedRowIndex}
             disabled={selectedRowIndex < 0}
+          />
+          <IKPanel
+            rows={rows}
+            convention={convention}
+            currentEEPosition={currentEEPosition}
+            ikTarget={ikTarget}
+            onTargetChange={setIkTarget}
+            ikResult={ikResult}
+            onSolve={handleIKSolve}
+            onApply={handleIKApply}
+            onUseCurrentEE={handleIKUseCurrentEE}
+            showPreview={ikShowPreview}
+            onShowPreviewChange={setIkShowPreview}
           />
         </div>
       </main>

@@ -2,7 +2,7 @@ import { useRef, useMemo, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { DHKinematics } from '../lib/dhKinematics.js';
+import { DHKinematics, DHRow } from '../lib/dhKinematics.js';
 
 const AXIS_LEN = 0.08;
 const AXIS_RAD = 0.008;
@@ -143,7 +143,7 @@ function multiply4x4(A, B) {
 }
 
 /** Ghost chain: same as RobotChain but with opacity and no axis labels to reduce clutter */
-function GhostChain({ rows, convention, prevRows }) {
+function GhostChain({ rows, convention, prevRows, linkColor = '#64748b', opacity = 0.35 }) {
   const engine = useMemo(() => {
     const e = new DHKinematics(convention);
     e.setRows(prevRows ?? rows);
@@ -165,13 +165,13 @@ function GhostChain({ rows, convention, prevRows }) {
   return (
     <group>
       {transforms.map(({ transform, linkLength }, i) => (
-        <GhostLink key={i} transform={transform} linkLength={linkLength} />
+        <GhostLink key={i} transform={transform} linkLength={linkLength} linkColor={linkColor} opacity={opacity} />
       ))}
     </group>
   );
 }
 
-function GhostLink({ transform, linkLength }) {
+function GhostLink({ transform, linkLength, linkColor = '#64748b', opacity = 0.35 }) {
   const m = useMemo(() => {
     const mat = new THREE.Matrix4();
     mat.set(...transform);
@@ -181,7 +181,24 @@ function GhostLink({ transform, linkLength }) {
     <group matrix={m} matrixAutoUpdate={false}>
       <mesh position={[linkLength / 2, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
         <cylinderGeometry args={[0.015, 0.015, linkLength, 12]} />
-        <meshBasicMaterial color="#64748b" transparent opacity={0.35} />
+        <meshBasicMaterial color={linkColor} transparent opacity={opacity} />
+      </mesh>
+    </group>
+  );
+}
+
+/** IK target position marker in 3D */
+function IKTargetMarker({ target }) {
+  if (!target || typeof target.x !== 'number') return null;
+  return (
+    <group position={[target.x, target.y, target.z]}>
+      <mesh>
+        <sphereGeometry args={[0.03, 16, 12]} />
+        <meshBasicMaterial color="#f59e0b" transparent opacity={0.8} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.032, 12, 8]} />
+        <meshBasicMaterial color="#f59e0b" wireframe />
       </mesh>
     </group>
   );
@@ -356,6 +373,8 @@ export function Scene({
   recording,
   onRecordPoint,
   onLabelPositions,
+  ikTarget = null,
+  ikPreviewThetas = null,
 }) {
   const engine = useMemo(() => {
     const e = new DHKinematics(convention);
@@ -370,6 +389,11 @@ export function Scene({
     () => ({ x: eePose[12], y: eePose[13], z: eePose[14] }),
     [eePose]
   );
+
+  const ikPreviewRows = useMemo(() => {
+    if (!ikPreviewThetas || ikPreviewThetas.length !== rows.length) return null;
+    return rows.map((r, i) => new DHRow(r.i, r.a, r.alpha, r.d, ikPreviewThetas[i]));
+  }, [rows, ikPreviewThetas]);
 
   useLabelPositionsToOverlay(rows, showJointLabels, onLabelPositions, jointGroupRefs);
 
@@ -396,6 +420,16 @@ export function Scene({
         showJointLabels={showJointLabels}
         jointGroupRefs={jointGroupRefs}
       />
+      {ikPreviewRows && (
+        <GhostChain
+          rows={rows}
+          convention={convention}
+          prevRows={ikPreviewRows}
+          linkColor="#22c55e"
+          opacity={0.5}
+        />
+      )}
+      <IKTargetMarker target={ikTarget} />
       <WorkspaceTrace points={pointsToShow} />
     </>
   );

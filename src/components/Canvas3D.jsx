@@ -14,6 +14,8 @@ export default function Canvas3D({
   onRecordPoint,
   onLabelPositions,
   labelScreenPositions = [],
+  ikTarget = null,
+  ikPreviewThetas = null,
 }) {
   return (
     <div className="relative w-full h-full min-h-[480px] bg-[#0a0c10] rounded-lg overflow-hidden border border-[var(--border)]">
@@ -32,6 +34,8 @@ export default function Canvas3D({
           recording={recording}
           onRecordPoint={onRecordPoint}
           onLabelPositions={onLabelPositions}
+          ikTarget={ikTarget}
+          ikPreviewThetas={ikPreviewThetas}
         />
         <OrbitControls enableDamping dampingFactor={0.05} />
       </Canvas>

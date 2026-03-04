@@ -61,18 +61,22 @@ export default function DHTable({
                       {readOnly ? (
                         <span className="font-mono">{row.i}</span>
                       ) : (
-                        <Label.Root className="sr-only" asChild>
+                        <>
+                          <Label.Root className="sr-only" htmlFor={cellId}>
+                            {label}
+                          </Label.Root>
                           <input
+                            id={cellId}
                             type="number"
                             step={key === 'a' || key === 'd' ? 0.01 : 1}
                             value={row[key]}
                             onChange={(e) =>
                               onUpdateRow(ri, key, e.target.value === '' ? '' : Number(e.target.value))
                             }
-                            className="w-14 min-w-0 text-center text-[13px]"
+                            className="w-16 min-w-0 text-center text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-sm focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
                             aria-label={label}
                           />
-                        </Label.Root>
+                        </>
                       )}
                     </td>
                   );
